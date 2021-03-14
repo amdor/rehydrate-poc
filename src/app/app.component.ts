@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { Store } from "@ngrx/store";
-import { simpleAction } from "./app.reducer";
+import { DynamicReducerProvider, simpleAction } from "./app.reducer";
 
 @Component({
   selector: 'app-root',
@@ -11,7 +11,7 @@ import { simpleAction } from "./app.reducer";
 })
 export class AppComponent {
 
-  constructor(private store: Store){}
+  constructor(private store: Store, private dynamicProvider: DynamicReducerProvider){}
 
   onClick() {
     this.store.dispatch(simpleAction());
