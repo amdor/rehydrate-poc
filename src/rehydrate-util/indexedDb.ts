@@ -1,10 +1,10 @@
 import { Action, ActionReducer, createReducer, On } from "@ngrx/store";
 
-let created = 0;
-
-async function getInitialStateFromDb(db: IDBDatabase, key: string) {
+async function getInitialStateFromDb(db: IDBDatabase, reducerKey: string) {
   return new Promise((resolutionFunc, rejectionFunc) => {
-    const stateObjectStore = db.transaction(key, "readonly").objectStore(key);
+    const stateObjectStore = db
+      .transaction(reducerKey, "readonly")
+      .objectStore(reducerKey);
     const request = stateObjectStore.get("1");
     request.onerror = rejectionFunc;
     request.onsuccess = function () {
@@ -13,68 +13,53 @@ async function getInitialStateFromDb(db: IDBDatabase, key: string) {
   });
 }
 
-async function createDB(request: IDBOpenDBRequest, key: string) {
+async function tryCreateStore(request: IDBOpenDBRequest, reducerKey: string) {
   return new Promise((resolutionFunc, rejectionFunc) => {
-    request.onupgradeneeded = function (event) {
-      const db = (event.target as any).result as IDBDatabase;
+    request.onsuccess = () => {
+      const db = request.result;
       let objectStore: IDBObjectStore;
       try {
-        objectStore = request.transaction.objectStore(key);
+        objectStore = db.transaction(reducerKey).objectStore(reducerKey);
       } catch (e) {
-        objectStore = db.createObjectStore(key);
+        objectStore = db.createObjectStore(reducerKey);
       }
-      objectStore.transaction.oncomplete = resolutionFunc;
-      // function () {
-      // getInitialStateFromDb(db, key).then(resolutionFunc, rejectionFunc);
-      //   };
-      objectStore.transaction.onerror = rejectionFunc;
+      resolutionFunc(db);
     };
+    request.onerror = rejectionFunc;
   });
 }
 
-async function getInitialState(request: IDBOpenDBRequest, key: string) {
-  return new Promise((resolutionFunc) => {
-    request.onsuccess = function (event) {
-      const db = (event.target as any).result as IDBDatabase;
-      getInitialStateFromDb(db, key).then(resolutionFunc);
-    };
-  });
-}
-
-async function saveState(
-  request: IDBOpenDBRequest,
-  newState: any,
-  key: string
-) {
+async function saveState(db: IDBDatabase, newState: any, reducerKey: string) {
   return new Promise((resolutionFunc, rejectionFunc) => {
-    request.onsuccess = function (event) {
-      const db = (event.target as any).result as IDBDatabase;
-      const stateObjectStore = db
-        .transaction(key, "readwrite")
-        .objectStore(key);
-      const request = stateObjectStore.put(newState, "1");
-      request.onerror = rejectionFunc;
-      request.onsuccess = resolutionFunc;
-    };
+    const stateObjectStore = db
+      .transaction(reducerKey, "readwrite")
+      .objectStore(reducerKey);
+    const request = stateObjectStore.put(newState, "1");
+    request.onerror = rejectionFunc;
+    request.onsuccess = resolutionFunc;
   });
 }
 
 export async function createIndexedDBRehydrateReducer<
   S,
   A extends Action = Action
->(key: string, initialState: S, ...ons: On<S>[]): Promise<ActionReducer<S, A>> {
+>(
+  reducerKey: string,
+  initialState: S,
+  ...ons: On<S>[]
+): Promise<ActionReducer<S, A>> {
   const t0 = performance.now();
 
   const request = window.indexedDB.open("MyTestDatabase");
-  const newInitialState = created
-    ? ((await getInitialState(request, key)) as S)
-    : initialState;
-  if (!created) {
-    try {
-      await createDB(request, key);
-    } catch (err) {
-      console.error(err);
-    }
+  let db = undefined;
+
+  let newInitialState = initialState;
+
+  try {
+    db = await tryCreateStore(request, reducerKey);
+    newInitialState = (await getInitialStateFromDb(db, reducerKey)) as S;
+  } catch (err) {
+    console.error(err);
   }
 
   const newOns: On<S>[] = [];
@@ -85,9 +70,12 @@ export async function createIndexedDBRehydrateReducer<
     ) => {
       const runT0 = performance.now();
 
-      const reducerRequest = window.indexedDB.open("MyTestDatabase");
       const newState = oldOn.reducer(state, action);
-      saveState(reducerRequest, newState, key);
+      try {
+        saveState(db, newState, reducerKey);
+      } catch (e) {
+        console.error("save failed " + e);
+      }
 
       const runT1 = performance.now();
       console.log(`indexdb reducer run took ${runT1 - runT0} milliseconds.`);
