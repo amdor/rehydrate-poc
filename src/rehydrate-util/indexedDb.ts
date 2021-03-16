@@ -71,11 +71,10 @@ export async function createIndexedDBRehydrateReducer<
       const runT0 = performance.now();
 
       const newState = oldOn.reducer(state, action);
-      try {
-        saveState(db, newState, reducerKey);
-      } catch (e) {
-        console.error("save failed " + e);
-      }
+      saveState(db, newState, reducerKey).then(() => {
+        const runT1 = performance.now();
+        console.log(`saved ${runT1 - runT0} milliseconds.`);
+      });
 
       const runT1 = performance.now();
       console.log(`indexdb reducer run took ${runT1 - runT0} milliseconds.`);
@@ -88,7 +87,5 @@ export async function createIndexedDBRehydrateReducer<
   const t1 = performance.now();
   console.log(`indexdb reducer creation took ${t1 - t0} milliseconds.`);
 
-  return new Promise((resolve) =>
-    resolve(createReducer(newInitialState, ...newOns))
-  );
+  return Promise.resolve(createReducer(newInitialState, ...newOns));
 }

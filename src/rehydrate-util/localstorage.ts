@@ -22,7 +22,7 @@ export function createLsRehydrateReducer<S, A extends Action = Action>(
       localStorage.setItem(key, JSON.stringify(newState));
 
       const runT1 = performance.now();
-      console.log(`ls educer run took ${runT1 - runT0} milliseconds.`);
+      console.log(`ls reducer run took ${runT1 - runT0} milliseconds.`);
 
       return newState;
     };

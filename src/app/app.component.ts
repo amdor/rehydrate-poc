@@ -1,18 +1,19 @@
-import { Component } from "@angular/core";
+import { AfterViewInit, Component } from "@angular/core";
 import { Store } from "@ngrx/store";
-import { DynamicReducerProvider, simpleAction } from "./app.reducer";
+import { simpleAction } from "./app.reducer";
 
 @Component({
   selector: "app-root",
   template: ` <button (click)="onClick()">Dispatch</button> `,
   styles: [],
 })
-export class AppComponent {
-  constructor(
-    private store: Store,
-    private dynamicProvider: DynamicReducerProvider
-  ) {
-    console.log("ctr");
+export class AppComponent implements AfterViewInit {
+  constructor(private store: Store) {
+    console.log("AppComponent ctr");
+  }
+
+  ngAfterViewInit() {
+    console.log("AppComponent afterviewinit");
   }
 
   onClick() {

@@ -1,13 +1,27 @@
 import { BrowserModule } from "@angular/platform-browser";
-import { NgModule } from "@angular/core";
+import { APP_INITIALIZER, NgModule } from "@angular/core";
 
 import { AppComponent } from "./app.component";
-import { StoreModule } from "@ngrx/store";
+import { ReducerManager, StoreModule } from "@ngrx/store";
+import {
+  addIndexedDBRehydratedReducer,
+  localStorageRehydrated,
+} from "./app.reducer";
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [BrowserModule, StoreModule.forRoot({})],
-  providers: [],
+  imports: [
+    BrowserModule,
+    StoreModule.forRoot({ localStorageRehydrated: localStorageRehydrated }),
+  ],
+  providers: [
+    // {
+    //   provide: APP_INITIALIZER,
+    //   useFactory: addIndexedDBRehydratedReducer,
+    //   deps: [ReducerManager],
+    //   multi: true,
+    // },
+  ],
   bootstrap: [AppComponent],
 })
 export class AppModule {}

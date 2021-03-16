@@ -26,28 +26,21 @@ export const localStorageRehydrated = createLsRehydrateReducer(
   })
 );
 
-// export let indexedDBRehydrateReducer;
-
-@Injectable({
-  providedIn: "root",
-})
-export class DynamicReducerProvider {
-  constructor(private reducerManager: ReducerManager) {
-    (async () => {
-      const indexedDBRehydrateReducer = await createIndexedDBRehydrateReducer(
-        "bigState",
-        initialState,
-        on(simpleAction, (state: any) => {
-          return {
-            ...state,
-            modifiableField: state.modifiableField + 1,
-          };
-        })
-      );
-      this.reducerManager.addReducer(
-        "indexedDBRehydrateReducer",
-        indexedDBRehydrateReducer
-      );
-    })();
-  }
+export function addIndexedDBRehydratedReducer(reducerManager: ReducerManager) {
+  return async () => {
+    const indexedDBRehydrateReducer = await createIndexedDBRehydrateReducer(
+      "bigState",
+      initialState,
+      on(simpleAction, (state: any) => {
+        return {
+          ...state,
+          modifiableField: state.modifiableField + 1,
+        };
+      })
+    );
+    reducerManager.addReducer(
+      "indexedDBRehydrateReducer",
+      indexedDBRehydrateReducer
+    );
+  };
 }
