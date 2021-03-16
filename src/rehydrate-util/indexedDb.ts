@@ -15,15 +15,14 @@ async function getInitialStateFromDb(db: IDBDatabase, reducerKey: string) {
 
 async function tryCreateStore(request: IDBOpenDBRequest, reducerKey: string) {
   return new Promise((resolutionFunc, rejectionFunc) => {
-    request.onsuccess = () => {
+    request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = request.result;
-      let objectStore: IDBObjectStore;
-      try {
-        objectStore = db.transaction(reducerKey).objectStore(reducerKey);
-      } catch (e) {
-        objectStore = db.createObjectStore(reducerKey);
+      if (!db.objectStoreNames.contains(reducerKey)) {
+        db.createObjectStore(reducerKey);
       }
-      resolutionFunc(db);
+    };
+    request.onsuccess = () => {
+      resolutionFunc(request.result);
     };
     request.onerror = rejectionFunc;
   });
@@ -53,14 +52,15 @@ export async function createIndexedDBRehydrateReducer<
   const request = window.indexedDB.open("MyTestDatabase");
   let db = undefined;
 
-  let newInitialState = initialState;
+  let newInitialState;
 
   try {
     db = await tryCreateStore(request, reducerKey);
-    newInitialState = (await getInitialStateFromDb(db, reducerKey)) as S;
   } catch (err) {
     console.error(err);
   }
+  newInitialState =
+    ((await getInitialStateFromDb(db, reducerKey)) as S) ?? initialState;
 
   const newOns: On<S>[] = [];
   ons.forEach((oldOn: On<S>) => {
