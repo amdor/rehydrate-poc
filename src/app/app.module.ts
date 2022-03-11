@@ -13,6 +13,7 @@ import {
   imports: [
     BrowserModule,
     StoreModule.forRoot({ localStorageRehydrated: localStorageRehydrated }),
+    StoreModule.forRoot({}, {}),
   ],
   providers: [
     // {
